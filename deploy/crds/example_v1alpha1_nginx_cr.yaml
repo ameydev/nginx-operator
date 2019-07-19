@@ -1,0 +1,10 @@
+apiVersion: example.com/v1alpha1
+kind: Nginx
+metadata:
+  name: example-nginx
+spec:
+  # Add fields here
+  replicas: 5
+  image: nginx:latest
+  name: my-nginx-cr
+  port: 8080
