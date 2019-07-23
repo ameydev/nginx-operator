@@ -7,4 +7,4 @@ spec:
   replicas: 2
   image: nginx:latest
   name: my-nginx-cr
-  port: 8080
+  port: 80

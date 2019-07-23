@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	examplev1alpha1 "github.com/ameydev/nginx-operator/pkg/apis/example/v1alpha1"
+	// "k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	appsv1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -236,19 +238,19 @@ func (r *ReconcileNginx) updateService(instance *examplev1alpha1.Nginx, request 
 	}
 
 	// Ensure the Port is the same as the spec
-	port := instance.Spec.Port
-	if *found.Spec.ServicePort.Ports[0] != count {
-		found.Spec.ServicePort.Ports[0] = &count
-		// reqLogger.Info("found-count in new method == ", &count)
-		fmt.Println("found-port in new method == ", port)
-		err = r.client.Update(context.TODO(), found)
-		if err != nil {
-			reqLogger.Info("Failed to update Deployment: %v\n", err)
-			return reconcile.Result{}, err
-		}
-		// Spec updated - return and requeue
-		return reconcile.Result{Requeue: true}, nil
-	}
+	// port := instance.Spec.Port
+	// if *found.Spec.ServicePort.Ports[0] != port {
+	// 	found.Spec.ServicePort.Ports[0] = &port
+	// 	// reqLogger.Info("found-count in new method == ", &count)
+	// 	fmt.Println("found-port in new method == ", port)
+	// 	err = r.client.Update(context.TODO(), found)
+	// 	if err != nil {
+	// 		reqLogger.Info("Failed to update Deployment: %v\n", err)
+	// 		return reconcile.Result{}, err
+	// 	}
+	// 	// Spec updated - return and requeue
+	// 	return reconcile.Result{Requeue: true}, nil
+	// }
 
 	// Deployment already exists - don't requeue
 	// reqLogger.Info("found-replicas == ", found.Spec.Replicas)
@@ -258,91 +260,6 @@ func (r *ReconcileNginx) updateService(instance *examplev1alpha1.Nginx, request 
 	return reconcile.Result{}, nil
 
 }
-
-// func (r *ReconcileExamplekind) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-// 	log.Printf("Reconciling Examplekind %s/%s\n", request.Namespace, request.Name)
-
-// 	// Fetch the Examplekind instance
-// 	instance := &examplev1alpha1.Examplekind{}
-// 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-// 	if err != nil {
-// 		if errors.IsNotFound(err) {
-// 			// Request object not found, could have been deleted after reconcile request.
-// 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-// 			// Return and don't requeue
-// 			return reconcile.Result{}, nil
-// 		}
-// 		// Error reading the object - requeue the request.
-// 		return reconcile.Result{}, err
-// 	}
-
-//   	// Check if the deployment already exists, if not create a new one
-//   found := &appsv1.Deployment{}
-//   err = r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, found)
-//   if err != nil && errors.IsNotFound(err) {
-//   	// Define a new deployment
-//   	dep := r.newDeploymentForCR(instance)
-//   	log.Printf("Creating a new Deployment %s/%s\n", dep.Namespace, dep.Name)
-//   	err = r.client.Create(context.TODO(), dep)
-//   	if err != nil {
-//   		log.Printf("Failed to create new Deployment: %v\n", err)
-//   		return reconcile.Result{}, err
-//   	}
-//   	// Deployment created successfully - return and requeue
-//   	return reconcile.Result{Requeue: true}, nil
-//   } else if err != nil {
-//   	log.Printf("Failed to get Deployment: %v\n", err)
-//   	return reconcile.Result{}, err
-//   }
-
-//   // Ensure the deployment Count is the same as the spec
-//   count := instance.Spec.Count
-//   if *found.Spec.Replicas != count {
-//   	found.Spec.Replicas = &count
-//   	err = r.client.Update(context.TODO(), found)
-//   	if err != nil {
-//   		log.Printf("Failed to update Deployment: %v\n", err)
-//   		return reconcile.Result{}, err
-//   	}
-//   	// Spec updated - return and requeue
-//   	return reconcile.Result{Requeue: true}, nil
-//   }
-
-//   // List the pods for this deployment
-//   podList := &corev1.PodList{}
-//   labelSelector := labels.SelectorFromSet(labelsForExampleKind(instance.Name))
-//   listOps := &client.ListOptions{Namespace: instance.Namespace, LabelSelector: labelSelector}
-//   err = r.client.List(context.TODO(), listOps, podList)
-//   if err != nil {
-//   	log.Printf("Failed to list pods: %v", err)
-//   	return reconcile.Result{}, err
-//   }
-//   podNames := getPodNames(podList.Items)
-
-//   // Update status.PodNames if needed
-//   if !reflect.DeepEqual(podNames, instance.Status.PodNames) {
-//   	instance.Status.PodNames = podNames
-//   	err := r.client.Update(context.TODO(), instance)
-//   	if err != nil {
-//   		log.Printf("failed to update node status: %v", err)
-//   		return reconcile.Result{}, err
-//   	}
-//   }
-
-//   // Update AppGroup status
-//   if instance.Spec.Group != instance.Status.AppGroup {
-//   	instance.Status.AppGroup = instance.Spec.Group
-//   	err := r.client.Update(context.TODO(), instance)
-//   	if err != nil {
-//   		log.Printf("failed to update group status: %v", err)
-//   		return reconcile.Result{}, err
-//   	}
-//   }
-
-// 	return reconcile.Result{}, nil
-// }
-
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
 
 func newDeploymentForCR(cr *examplev1alpha1.Nginx) *appsv1.Deployment {
 	labels := map[string]string{
@@ -356,6 +273,9 @@ func newDeploymentForCR(cr *examplev1alpha1.Nginx) *appsv1.Deployment {
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
+			Strategy: appsv1.DeploymentStrategy{
+				Type: "Recreate",
+			},
 			Replicas: &cr.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
@@ -385,6 +305,9 @@ func newServiceForCR(cr *examplev1alpha1.Nginx) *corev1.Service {
 		"app": cr.Name,
 	}
 	// ls := labelsForMemcached(m.Name)
+	crport := cr.Spec.Port
+	// port2 := strconv.Itoa(crport)
+
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name + "-service",
@@ -392,13 +315,17 @@ func newServiceForCR(cr *examplev1alpha1.Nginx) *corev1.Service {
 			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     "NodePort",
-			Selector: map[string]string{"Name": cr.Spec.Name},
+			Type:     "LoadBalancer",
+			Selector: map[string]string{"app": cr.Name},
 			// []ServiceSelector{{
 			// 	Name: cr.Spec.Name,
 			// }},
 			Ports: []corev1.ServicePort{{
-				Port: cr.Spec.Port,
+				Port:       cr.Spec.Port,
+				TargetPort: intstr.FromInt(int(crport)),
+				Protocol:   "TCP",
+				Name:       "http",
+				// TargetPort: intstr.FromString(port2),
 				// NodePort: 31808,
 			}},
 		},
@@ -407,56 +334,3 @@ func newServiceForCR(cr *examplev1alpha1.Nginx) *corev1.Service {
 	return service
 
 }
-
-// func (r *ReconcileNginx) updatePod(instance *examplev1alpha1.Nginx) (reconcile.Result, error) {
-
-// 	// Define a new Pod object
-// 	pod := newPodForCR(instance)
-
-// 	// Set Nginx instance as the owner and controller
-// 	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-// 		return reconcile.Result{}, err
-// 	}
-
-// 	// Check if this Pod already exists
-// 	found := &corev1.Pod{}
-// 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-// 	if err != nil && errors.IsNotFound(err) {
-// 		log.Info("Creating a new Pod")
-// 		err := r.client.Create(context.TODO(), pod)
-// 		if err != nil {
-// 			return reconcile.Result{}, err
-// 		}
-
-// 		// Pod created successfully - don't requeue
-// 		return reconcile.Result{}, nil
-// 	} else if err != nil {
-// 		return reconcile.Result{}, err
-// 	}
-
-// 	// Pod already exists - don't requeue
-// 	log.Info("Skip reconcile: Pod already exists")
-// 	return reconcile.Result{}, nil
-
-// }
-// func newPodForCR(cr *examplev1alpha1.Nginx) *corev1.Pod {
-// 	labels := map[string]string{
-// 		"app": cr.Name,
-// 	}
-// 	return &corev1.Pod{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      cr.Name + "-pod",
-// 			Namespace: cr.Namespace,
-// 			Labels:    labels,
-// 		},
-// 		Spec: corev1.PodSpec{
-// 			Containers: []corev1.Container{
-// 				{
-// 					Name:    cr.Spec.Name,
-// 					Image:   cr.Spec.Image,
-// 					Command: []string{"sleep", "3600"},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
