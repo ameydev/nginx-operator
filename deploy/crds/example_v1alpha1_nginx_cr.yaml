@@ -8,3 +8,6 @@ spec:
   image: nginx:latest
   name: my-nginx-cr
   port: 80
+  secretname: secret-volume
+  username: admin
+  password: admin123

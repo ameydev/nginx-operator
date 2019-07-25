@@ -1,0 +1,8 @@
+&Secret{
+    ObjectMeta:k8s_io_apimachinery_pkg_apis_meta_v1.ObjectMeta{
+        Name:secret-volume,GenerateName:,Namespace:default,SelfLink:/api/v1/namespaces/default/secrets/secret-volume,UID:872d4db0-ad4c-11e9-9dec-0800271926e3,ResourceVersion:204940,Generation:0,CreationTimestamp:2019-07-23 13:19:40 +0000 UTC,DeletionTimestamp:<nil>,DeletionGracePeriodSeconds:nil,Labels:map[string]string{app: example-nginx,},Annotations:map[string]string{},OwnerReferences:[{example.com/v1alpha1 Nginx example-nginx 7aad987c-ad4c-11e9-9dec-0800271926e3 0xc000827502 0xc000827503}],Finalizers:[],ClusterName:,Initializers:nil,
+        },
+        Data:map[string][]byte{password: [97 100 109 105 110 49 50 51],username: [97 100 109 105 110],},
+        Type:Opaque,
+        StringData:map[string]string{},
+        }

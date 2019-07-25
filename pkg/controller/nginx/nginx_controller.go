@@ -3,9 +3,11 @@ package nginx
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	examplev1alpha1 "github.com/ameydev/nginx-operator/pkg/apis/example/v1alpha1"
 	// "k8s.io/api/apps/v1beta1"
+
 	corev1 "k8s.io/api/core/v1"
 	appsv1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -120,7 +122,12 @@ func (r *ReconcileNginx) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
-	res, err := r.updateDeployment(instance, request)
+	res, err := r.updateSecret(instance, request)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	res, err = r.updateDeployment(instance, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -131,6 +138,84 @@ func (r *ReconcileNginx) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	return res, err
+
+}
+
+func (r *ReconcileNginx) updateSecret(instance *examplev1alpha1.Nginx, request reconcile.Request) (reconcile.Result, error) {
+
+	// reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+
+	// Define a new Pod object
+	secret := newSecretForCR(instance)
+
+	// Set Nginx instance as the owner and controller
+	if err := controllerutil.SetControllerReference(instance, secret, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Check if this Deployment already exists
+	found := &corev1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, found)
+	fmt.Println("Found secret ===========")
+	fmt.Println(found)
+	username := instance.Spec.Username
+	// e_usernmae := b64.StdEncoding.EncodeToString([]byte(username))
+	e_usernmae := []byte(username)
+	fmt.Println("Instance Username", username)
+	fmt.Println("Eusername ==== ", e_usernmae)
+	fmt.Println("Eusername in byte ==== ", []byte(e_usernmae))
+	fmt.Println("Found username ==== ", found.Data["username"])
+
+	// if found.Data["username"] != []byte(e_usernmae) {
+	if found.Data["username"] != nil {
+		if reflect.DeepEqual(found.Data["username"], []byte(e_usernmae)) == false {
+			// found.Data["username"] = []byte(e_usernmae)
+			found.Data["username"] = e_usernmae
+			// 	for i := range []byte(e_usernmae) {
+			// 		found.Data["username"][i] = []byte(e_usernmae)[i]
+
+			// 	}
+
+			fmt.Println("Username updated as ==> ", username)
+			// fmt.Println("found-count in new method == ", count)
+			err = r.client.Update(context.TODO(), found)
+			if err != nil {
+				fmt.Println("Failed to update Secret: %v\n", err)
+				return reconcile.Result{}, err
+			}
+			// Spec updated - return and requeue
+			return reconcile.Result{Requeue: true}, nil
+		}
+	}
+	// password := instance.Spec.Password
+	// if *found.StringData.Password != password {
+	// 	found.StringData.Password = &password
+	// 	fmt.Println("Password updated as ==> ",password)
+	// 	// fmt.Println("found-count in new method == ", count)
+	// 	err = r.client.Update(context.TODO(), found)
+	// 	if err != nil {
+	// 		reqLogger.Info("Failed to update Secret: %v\n", err)
+	// 		return reconcile.Result{}, err
+	// 	}
+	// 	// Spec updated - return and requeue
+	// 	return reconcile.Result{Requeue: true}, nil
+	// }
+	if err != nil && errors.IsNotFound(err) {
+		fmt.Println("Creating a new secret")
+		err := r.client.Create(context.TODO(), secret)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
+		// secret created successfully - don't requeue
+		return reconcile.Result{}, nil
+	} else if err != nil {
+
+		return reconcile.Result{}, err
+	}
+
+	log.Info("Skip reconcile: Secret already exists")
+	return reconcile.Result{}, nil
 
 }
 
@@ -149,7 +234,7 @@ func (r *ReconcileNginx) updateDeployment(instance *examplev1alpha1.Nginx, reque
 	// Check if this Deployment already exists
 	found := &appsv1.Deployment{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}, found)
-	// reqLogger.Info("found-replicas == ", found.Spec.Replicas)
+	// reqLogger.Info("found-replicas == ", found.Spec.Replicas)Replicas
 	// reqLogger.Info("dep-replicas == ", dep.Spec.Replicas)
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("Creating a new Deployment")
@@ -288,10 +373,29 @@ func newDeploymentForCR(cr *examplev1alpha1.Nginx) *appsv1.Deployment {
 					Containers: []corev1.Container{{
 						Image: cr.Spec.Image,
 						Name:  cr.Spec.Name,
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: cr.Spec.Port,
-						}},
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: cr.Spec.Port,
+							},
+						},
+						VolumeMounts: []corev1.VolumeMount{{
+
+							Name:      "secret-volume",
+							MountPath: "/etc/secret-volume",
+						},
+						},
 					}},
+					// spec.template.spec.volumes[0].secret.secretName:
+					Volumes: []corev1.Volume{
+						{
+							Name: "secret-volume",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: cr.Spec.SecretName,
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -304,9 +408,7 @@ func newServiceForCR(cr *examplev1alpha1.Nginx) *corev1.Service {
 	labels := map[string]string{
 		"app": cr.Name,
 	}
-	// ls := labelsForMemcached(m.Name)
 	crport := cr.Spec.Port
-	// port2 := strconv.Itoa(crport)
 
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -317,20 +419,35 @@ func newServiceForCR(cr *examplev1alpha1.Nginx) *corev1.Service {
 		Spec: corev1.ServiceSpec{
 			Type:     "LoadBalancer",
 			Selector: map[string]string{"app": cr.Name},
-			// []ServiceSelector{{
-			// 	Name: cr.Spec.Name,
-			// }},
 			Ports: []corev1.ServicePort{{
 				Port:       cr.Spec.Port,
 				TargetPort: intstr.FromInt(int(crport)),
 				Protocol:   "TCP",
 				Name:       "http",
-				// TargetPort: intstr.FromString(port2),
-				// NodePort: 31808,
 			}},
 		},
 	}
 
 	return service
 
+}
+
+func newSecretForCR(cr *examplev1alpha1.Nginx) *corev1.Secret {
+	labels := map[string]string{
+		"app": cr.Name,
+	}
+	// crport := cr.Spec.Port
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Spec.SecretName,
+			Namespace: cr.Namespace,
+			Labels:    labels,
+		},
+		StringData: map[string]string{
+			"username": cr.Spec.Username,
+			"password": cr.Spec.Password,
+		},
+	}
+	return secret
 }

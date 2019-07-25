@@ -14,10 +14,13 @@ type NginxSpec struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 
-	Replicas int32  `json:"replicas"`
-	Port     int32  `json:"port"`
-	Image    string `json:"image"`
-	Name     string `json:"name"`
+	Replicas   int32  `json:"replicas"`
+	Port       int32  `json:"port"`
+	Image      string `json:"image"`
+	Name       string `json:"name"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	SecretName string `json:"secretname"`
 }
 
 // NginxStatus defines the observed state of Nginx
