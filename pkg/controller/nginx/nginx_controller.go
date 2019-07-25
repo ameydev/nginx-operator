@@ -157,27 +157,21 @@ func (r *ReconcileNginx) updateSecret(instance *examplev1alpha1.Nginx, request r
 	found := &corev1.Secret{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, found)
 	fmt.Println("Found secret ===========")
-	fmt.Println(found)
+	// fmt.Println(found)
 	username := instance.Spec.Username
 	// e_usernmae := b64.StdEncoding.EncodeToString([]byte(username))
-	e_usernmae := []byte(username)
+	eUsernmae := []byte(username)
 	fmt.Println("Instance Username", username)
-	fmt.Println("Eusername ==== ", e_usernmae)
-	fmt.Println("Eusername in byte ==== ", []byte(e_usernmae))
+	fmt.Println("Eusername ==== ", eUsernmae)
+	fmt.Println("Eusername in byte ==== ", []byte(eUsernmae))
 	fmt.Println("Found username ==== ", found.Data["username"])
 
 	// if found.Data["username"] != []byte(e_usernmae) {
 	if found.Data["username"] != nil {
-		if reflect.DeepEqual(found.Data["username"], []byte(e_usernmae)) == false {
-			// found.Data["username"] = []byte(e_usernmae)
-			found.Data["username"] = e_usernmae
-			// 	for i := range []byte(e_usernmae) {
-			// 		found.Data["username"][i] = []byte(e_usernmae)[i]
-
-			// 	}
+		if reflect.DeepEqual(found.Data["username"], []byte(eUsernmae)) == false {
+			found.Data["username"] = eUsernmae
 
 			fmt.Println("Username updated as ==> ", username)
-			// fmt.Println("found-count in new method == ", count)
 			err = r.client.Update(context.TODO(), found)
 			if err != nil {
 				fmt.Println("Failed to update Secret: %v\n", err)
@@ -187,19 +181,29 @@ func (r *ReconcileNginx) updateSecret(instance *examplev1alpha1.Nginx, request r
 			return reconcile.Result{Requeue: true}, nil
 		}
 	}
-	// password := instance.Spec.Password
-	// if *found.StringData.Password != password {
-	// 	found.StringData.Password = &password
-	// 	fmt.Println("Password updated as ==> ",password)
-	// 	// fmt.Println("found-count in new method == ", count)
-	// 	err = r.client.Update(context.TODO(), found)
-	// 	if err != nil {
-	// 		reqLogger.Info("Failed to update Secret: %v\n", err)
-	// 		return reconcile.Result{}, err
-	// 	}
-	// 	// Spec updated - return and requeue
-	// 	return reconcile.Result{Requeue: true}, nil
-	// }
+	password := instance.Spec.Password
+	ePassword := []byte(password)
+
+	fmt.Println("Instance Password", password)
+	fmt.Println("E_pass ==== ", ePassword)
+	fmt.Println("E_pass in byte ==== ", []byte(ePassword))
+	fmt.Println("Found passwrd ==== ", found.Data["password"])
+
+	if found.Data["password"] != nil {
+		if reflect.DeepEqual(found.Data["password"], ePassword) == false {
+			found.Data["password"] = ePassword
+
+			fmt.Println("Password updated as ==> ", password)
+			err = r.client.Update(context.TODO(), found)
+			if err != nil {
+				fmt.Println("Failed to update Secret: %v\n", err)
+				return reconcile.Result{}, err
+			}
+			// Spec updated - return and requeue
+			return reconcile.Result{Requeue: true}, nil
+		}
+	}
+
 	if err != nil && errors.IsNotFound(err) {
 		fmt.Println("Creating a new secret")
 		err := r.client.Create(context.TODO(), secret)
